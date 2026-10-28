@@ -14,11 +14,11 @@ def get_ytdl_base_opts():
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
-        # ইউটিউব বট গার্ড বাইপাস করার জন্য টিভি ও ওয়েব এম্বেডেড ক্লায়েন্ট
+        # একাধিক ক্লায়েন্ট ফলব্যাক (অ্যান্ড্রয়েড, আইওএস ও ওয়েব)
         'extractor_args': {
             'youtube': {
-                'player_client': ['tv', 'web_embedded', 'ios'],
-                'player_skip': ['configs', 'webpage']
+                'player_client': ['android', 'ios', 'web'],
+                'player_skip': ['configs']
             }
         },
         'http_headers': {
@@ -27,7 +27,7 @@ def get_ytdl_base_opts():
         }
     }
     
-    # কুকিজ ফাইল উপস্থিত থাকলে সেটি যুক্ত করা
+    # কুকিজ ফাইল উপস্থিত থাকলে সেটি স্বয়ংক্রিয়ভাবে যুক্ত হবে
     if os.path.exists(COOKIE_FILE):
         opts['cookiefile'] = COOKIE_FILE
         
