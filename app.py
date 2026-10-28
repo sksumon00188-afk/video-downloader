@@ -14,25 +14,31 @@ def get_base_opts():
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
+        # কুকিজের সাথে সামঞ্জস্যপূর্ণ ওয়েব ক্লায়েন্ট কনফিগারেশন
         'extractor_args': {
             'youtube': {
-                'player_client': ['android', 'ios', 'web']
+                'player_client': ['web', 'mweb'],
+                'player_skip': ['js']
             }
         },
         'http_headers': {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
             'Accept-Language': 'en-US,en;q=0.9',
+            'Sec-Fetch-Mode': 'navigate',
         }
     }
-    if os.path.exists(COOKIE_FILE):
+    
+    # কুকিজ ফাইল উপস্থিত থাকলে তা স্পষ্টভাবে লোড করা
+    if os.path.exists(COOKIE_FILE) and os.path.getsize(COOKIE_FILE) > 0:
         opts['cookiefile'] = COOKIE_FILE
+        
     return opts
 
 @app.route('/')
 def home():
     return render_template('index.html')
 
-# ১. ভিডিও ডাউনলোড (সব সাইটের যেকোনো উপলব্ধ ফরম্যাট স্বয়ংক্রিয়ভাবে নেবে)
+# ১. ভিডিও ডাউনলোড (Facebook, Instagram, YouTube, X ইত্যাদি)
 @app.route('/download-video', methods=['POST'])
 def download_video():
     data = request.get_json() or {}
@@ -42,7 +48,6 @@ def download_video():
 
     ydl_opts = {
         **get_base_opts(),
-        # ফরম্যাট রেস্ট্রিকশন ছাড়াই সেরা কোয়ালিটির ফাইল সংগ্রহ
         'format': 'best',
         'outtmpl': os.path.join(DOWNLOAD_FOLDER, '%(id)s.%(ext)s'),
     }
