@@ -7,7 +7,7 @@ app = Flask(__name__)
 DOWNLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'downloads')
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
-# সব ওয়েবসাইটের জন্য সাধারণ স্ট্যান্ডার্ড অপশন
+# ফেসবুক, ইনস্টাগ্রাম, এক্স (টুইটার), ইউটিউব সহ সব ওয়েবসাইটের জন্য সার্বজনীন কনফিগারেশন
 BASE_OPTS = {
     'quiet': True,
     'no_warnings': True,
@@ -30,7 +30,6 @@ def download_video():
     if not url:
         return jsonify({'error': 'দয়া করে একটি লিংক দিন!'}), 400
 
-    # সব সাইটের জন্য স্ট্যান্ডার্ড mp4 ফরম্যাট
     ydl_opts = {
         **BASE_OPTS,
         'format': 'best[ext=mp4]/bestvideo+bestaudio/best',
@@ -44,7 +43,6 @@ def download_video():
             raw_title = info.get('title', 'downloaded_video')
             safe_title = re.sub(r'[\\/*?:"<>|]', "", raw_title)[:50]
             
-            # ডাউনলোড হওয়া আসল ফাইলটি খুঁজে বের করা
             final_file = None
             for f in os.listdir(DOWNLOAD_FOLDER):
                 if f.startswith(video_id):
@@ -69,7 +67,7 @@ def download_video():
     except Exception as e:
         return jsonify({'error': f'ডাউনলোড ব্যর্থ হয়েছে: {str(e)}'}), 500
 
-# ২. যেকোনো ওয়েবসাইট থেকে সাবটাইটেল / ক্যাপশন ডাউনলোড
+# ২. যেকোনো ওয়েবসাইট থেকে সাবটাইটেল ডাউনলোড
 @app.route('/download-subtitle', methods=['POST'])
 def download_subtitle():
     data = request.get_json() or {}
@@ -94,7 +92,6 @@ def download_subtitle():
             raw_title = info.get('title', 'subtitles')
             safe_title = re.sub(r'[\\/*?:"<>|]', "", raw_title)[:50]
 
-        # সাবটাইটেল ফাইল খোঁজা
         sub_files = [f for f in os.listdir(DOWNLOAD_FOLDER) if f.startswith(video_id) and (f.endswith('.srt') or f.endswith('.vtt'))]
         
         if not sub_files:
