@@ -14,21 +14,19 @@ def get_base_opts():
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
-        # কুকিজের সাথে সামঞ্জস্যপূর্ণ ওয়েব ক্লায়েন্ট কনফিগারেশন
+        # PO-Token ছাড়া ক্লাউড আইপি বাইপাস করার জন্য বিশেষ টিভি-এম্বেডেড ও অ্যান্ড্রয়েড ক্লায়েন্ট
         'extractor_args': {
             'youtube': {
-                'player_client': ['web', 'mweb'],
-                'player_skip': ['js']
+                'player_client': ['tv_embedded', 'android', 'ios'],
+                'player_skip': ['webpage', 'configs']
             }
         },
         'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'User-Agent': 'Mozilla/5.0 (PlayStation 4 5.05) AppleWebKit/537.78 (KHTML, like Gecko)',
             'Accept-Language': 'en-US,en;q=0.9',
-            'Sec-Fetch-Mode': 'navigate',
         }
     }
     
-    # কুকিজ ফাইল উপস্থিত থাকলে তা স্পষ্টভাবে লোড করা
     if os.path.exists(COOKIE_FILE) and os.path.getsize(COOKIE_FILE) > 0:
         opts['cookiefile'] = COOKIE_FILE
         
@@ -38,7 +36,7 @@ def get_base_opts():
 def home():
     return render_template('index.html')
 
-# ১. ভিডিও ডাউনলোড (Facebook, Instagram, YouTube, X ইত্যাদি)
+# ১. ভিডিও ডাউনলোড
 @app.route('/download-video', methods=['POST'])
 def download_video():
     data = request.get_json() or {}
@@ -67,7 +65,7 @@ def download_video():
                     break
 
         if not final_filepath or not os.path.exists(final_filepath):
-            return jsonify({'error': 'ভিডিও প্রসেস করা সম্ভব হয়নি!'}), 500
+            return jsonify({'error': 'ভিডিও ফাইল প্রসেস করা সম্ভব হয়নি!'}), 500
 
         @after_this_request
         def cleanup(response):
