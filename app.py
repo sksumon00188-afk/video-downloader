@@ -16,8 +16,7 @@ def get_base_opts():
         'nocheckcertificate': True,
         'extractor_args': {
             'youtube': {
-                'player_client': ['android', 'web', 'ios'],
-                'player_skip': ['configs', 'webpage']
+                'player_client': ['android', 'ios', 'web']
             }
         },
         'http_headers': {
@@ -25,7 +24,6 @@ def get_base_opts():
             'Accept-Language': 'en-US,en;q=0.9',
         }
     }
-    # কুকিজ ফাইল থাকলে সেটি ইউটিউবকে বাইপাস করতে ব্যবহার করবে
     if os.path.exists(COOKIE_FILE):
         opts['cookiefile'] = COOKIE_FILE
     return opts
@@ -34,7 +32,7 @@ def get_base_opts():
 def home():
     return render_template('index.html')
 
-# ১. ভিডিও ডাউনলোড
+# ১. ভিডিও ডাউনলোড (সব সাইটের যেকোনো উপলব্ধ ফরম্যাট স্বয়ংক্রিয়ভাবে নেবে)
 @app.route('/download-video', methods=['POST'])
 def download_video():
     data = request.get_json() or {}
@@ -44,7 +42,8 @@ def download_video():
 
     ydl_opts = {
         **get_base_opts(),
-        'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+        # ফরম্যাট রেস্ট্রিকশন ছাড়াই সেরা কোয়ালিটির ফাইল সংগ্রহ
+        'format': 'best',
         'outtmpl': os.path.join(DOWNLOAD_FOLDER, '%(id)s.%(ext)s'),
     }
 
@@ -63,7 +62,7 @@ def download_video():
                     break
 
         if not final_filepath or not os.path.exists(final_filepath):
-            return jsonify({'error': 'ভিডিও প্রসেস করা যায়নি!'}), 500
+            return jsonify({'error': 'ভিডিও প্রসেস করা সম্ভব হয়নি!'}), 500
 
         @after_this_request
         def cleanup(response):
@@ -77,10 +76,7 @@ def download_video():
         return send_file(final_filepath, as_attachment=True, download_name=f"{safe_title}{ext}")
 
     except Exception as e:
-        err = str(e)
-        if "Sign in to confirm" in err:
-            return jsonify({'error': 'ইউটিউব ডাটা-সেন্টার আইপি ব্লক করেছে। একটি cookies.txt ফাইল যুক্ত করলেই এটি ঠিক হয়ে যাবে।'}), 500
-        return jsonify({'error': f'ভিডিও ডাউনলোড ব্যর্থ: {err}'}), 500
+        return jsonify({'error': f'ভিডিও ডাউনলোড ব্যর্থ: {str(e)}'}), 500
 
 # ২. সাবটাইটেল ডাউনলোড
 @app.route('/download-subtitle', methods=['POST'])
@@ -110,7 +106,7 @@ def download_subtitle():
         sub_files = [f for f in os.listdir(DOWNLOAD_FOLDER) if f.startswith(video_id) and (f.endswith('.srt') or f.endswith('.vtt'))]
 
         if not sub_files:
-            return jsonify({'error': 'এই ভিডিওতে কোনো সাবটাইটেল ফাইল পাওয়া যায়নি! (ফেসবুক বা ইনস্টাগ্রাম রিলসে সাধারণত আলাদা সাবটাইটেল ট্র্যাক থাকে না)'}), 404
+            return jsonify({'error': 'এই ভিডিওতে কোনো সাবটাইটেল ট্র্যাক পাওয়া যায়নি!'}), 404
 
         target_file = os.path.join(DOWNLOAD_FOLDER, sub_files[0])
         ext = os.path.splitext(sub_files[0])[1]
