@@ -4,35 +4,47 @@ from flask import Flask, render_template, request, jsonify, send_file, after_thi
 import yt_dlp
 
 app = Flask(__name__)
-DOWNLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'downloads')
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DOWNLOAD_FOLDER = os.path.join(BASE_DIR, 'downloads')
+COOKIE_FILE = os.path.join(BASE_DIR, 'cookies.txt')
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
-# ফেসবুক, ইনস্টাগ্রাম, এক্স (টুইটার), ইউটিউব সহ সব ওয়েবসাইটের জন্য সার্বজনীন কনফিগারেশন
-BASE_OPTS = {
-    'quiet': True,
-    'no_warnings': True,
-    'nocheckcertificate': True,
-    'http_headers': {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'Accept-Language': 'en-US,en;q=0.9',
+def get_base_opts():
+    opts = {
+        'quiet': True,
+        'no_warnings': True,
+        'nocheckcertificate': True,
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'web', 'ios'],
+                'player_skip': ['configs', 'webpage']
+            }
+        },
+        'http_headers': {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Accept-Language': 'en-US,en;q=0.9',
+        }
     }
-}
+    # কুকিজ ফাইল থাকলে সেটি ইউটিউবকে বাইপাস করতে ব্যবহার করবে
+    if os.path.exists(COOKIE_FILE):
+        opts['cookiefile'] = COOKIE_FILE
+    return opts
 
 @app.route('/')
 def home():
     return render_template('index.html')
 
-# ১. যেকোনো ওয়েবসাইট থেকে ভিডিও ডাউনলোড
+# ১. ভিডিও ডাউনলোড
 @app.route('/download-video', methods=['POST'])
 def download_video():
     data = request.get_json() or {}
     url = data.get('url', '').strip()
     if not url:
-        return jsonify({'error': 'দয়া করে একটি লিংক দিন!'}), 400
+        return jsonify({'error': 'দয়া করে একটি সঠিক ভিডিও লিংক দিন!'}), 400
 
     ydl_opts = {
-        **BASE_OPTS,
-        'format': 'best[ext=mp4]/bestvideo+bestaudio/best',
+        **get_base_opts(),
+        'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
         'outtmpl': os.path.join(DOWNLOAD_FOLDER, '%(id)s.%(ext)s'),
     }
 
@@ -40,49 +52,52 @@ def download_video():
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             video_id = info.get('id', 'video')
-            raw_title = info.get('title', 'downloaded_video')
+            raw_title = info.get('title', 'video')
             safe_title = re.sub(r'[\\/*?:"<>|]', "", raw_title)[:50]
-            
-            final_file = None
+
+            final_filepath = None
             for f in os.listdir(DOWNLOAD_FOLDER):
-                if f.startswith(video_id):
-                    final_file = os.path.join(DOWNLOAD_FOLDER, f)
+                if f.startswith(video_id) and not f.endswith('.temp'):
+                    final_filepath = os.path.join(DOWNLOAD_FOLDER, f)
                     ext = os.path.splitext(f)[1]
                     break
 
-        if not final_file or not os.path.exists(final_file):
-            return jsonify({'error': 'ভিডিও ফাইল প্রসেস করা যায়নি!'}), 500
+        if not final_filepath or not os.path.exists(final_filepath):
+            return jsonify({'error': 'ভিডিও প্রসেস করা যায়নি!'}), 500
 
         @after_this_request
         def cleanup(response):
             try:
-                if os.path.exists(final_file):
-                    os.remove(final_file)
+                if os.path.exists(final_filepath):
+                    os.remove(final_filepath)
             except Exception:
                 pass
             return response
 
-        return send_file(final_file, as_attachment=True, download_name=f"{safe_title}{ext}")
+        return send_file(final_filepath, as_attachment=True, download_name=f"{safe_title}{ext}")
 
     except Exception as e:
-        return jsonify({'error': f'ডাউনলোড ব্যর্থ হয়েছে: {str(e)}'}), 500
+        err = str(e)
+        if "Sign in to confirm" in err:
+            return jsonify({'error': 'ইউটিউব ডাটা-সেন্টার আইপি ব্লক করেছে। একটি cookies.txt ফাইল যুক্ত করলেই এটি ঠিক হয়ে যাবে।'}), 500
+        return jsonify({'error': f'ভিডিও ডাউনলোড ব্যর্থ: {err}'}), 500
 
-# ২. যেকোনো ওয়েবসাইট থেকে সাবটাইটেল ডাউনলোড
+# ২. সাবটাইটেল ডাউনলোড
 @app.route('/download-subtitle', methods=['POST'])
 def download_subtitle():
     data = request.get_json() or {}
     url = data.get('url', '').strip()
     if not url:
-        return jsonify({'error': 'দয়া করে একটি লিংক দিন!'}), 400
+        return jsonify({'error': 'দয়া করে একটি সঠিক ভিডিও লিংক দিন!'}), 400
 
     ydl_opts = {
-        **BASE_OPTS,
+        **get_base_opts(),
         'skip_download': True,
         'writesubtitles': True,
         'writeautomaticsub': True,
         'subtitleslangs': ['all'],
         'subtitlesformat': 'srt/vtt/best',
-        'outtmpl': os.path.join(DOWNLOAD_FOLDER, '%(id)s'),
+        'outtmpl': os.path.join(DOWNLOAD_FOLDER, '%(id)s.%(ext)s'),
     }
 
     try:
@@ -93,9 +108,9 @@ def download_subtitle():
             safe_title = re.sub(r'[\\/*?:"<>|]', "", raw_title)[:50]
 
         sub_files = [f for f in os.listdir(DOWNLOAD_FOLDER) if f.startswith(video_id) and (f.endswith('.srt') or f.endswith('.vtt'))]
-        
+
         if not sub_files:
-            return jsonify({'error': 'এই ভিডিওতে কোনো সাবটাইটেল পাওয়া যায়নি!'}), 404
+            return jsonify({'error': 'এই ভিডিওতে কোনো সাবটাইটেল ফাইল পাওয়া যায়নি! (ফেসবুক বা ইনস্টাগ্রাম রিলসে সাধারণত আলাদা সাবটাইটেল ট্র্যাক থাকে না)'}), 404
 
         target_file = os.path.join(DOWNLOAD_FOLDER, sub_files[0])
         ext = os.path.splitext(sub_files[0])[1]
@@ -114,7 +129,7 @@ def download_subtitle():
         return send_file(target_file, as_attachment=True, download_name=f"{safe_title}{ext}")
 
     except Exception as e:
-        return jsonify({'error': f'সাবটাইটেল পাওয়া যায়নি: {str(e)}'}), 500
+        return jsonify({'error': f'সাবটাইটেল ডাউনলোড ব্যর্থ: {str(e)}'}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
