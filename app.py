@@ -4,22 +4,34 @@ from flask import Flask, render_template, request, jsonify, send_file, after_thi
 import yt_dlp
 
 app = Flask(__name__)
-DOWNLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'downloads')
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DOWNLOAD_FOLDER = os.path.join(BASE_DIR, 'downloads')
+COOKIE_FILE = os.path.join(BASE_DIR, 'cookies.txt')
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
-# ইউটিউব বট বাইপাস করার ক্লায়েন্ট কনফিগারেশন
-YTDL_BASE_OPTS = {
-    'quiet': True,
-    'no_warnings': True,
-    'extractor_args': {
-        'youtube': {
-            'player_client': ['ios', 'android']
+def get_ytdl_base_opts():
+    opts = {
+        'quiet': True,
+        'no_warnings': True,
+        'nocheckcertificate': True,
+        # ইউটিউব বট গার্ড বাইপাস করার জন্য টিভি ও ওয়েব এম্বেডেড ক্লায়েন্ট
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['tv', 'web_embedded', 'ios'],
+                'player_skip': ['configs', 'webpage']
+            }
+        },
+        'http_headers': {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Accept-Language': 'en-US,en;q=0.9',
         }
-    },
-    'http_headers': {
-        'User-Agent': 'com.google.ios.youtube/19.29.1 (iPhone14,5; U; CPU iOS 17_5_1 like Mac OS X; en_US)'
     }
-}
+    
+    # কুকিজ ফাইল উপস্থিত থাকলে সেটি যুক্ত করা
+    if os.path.exists(COOKIE_FILE):
+        opts['cookiefile'] = COOKIE_FILE
+        
+    return opts
 
 @app.route('/')
 def home():
@@ -31,10 +43,10 @@ def download_video():
     url = data.get('url', '').strip()
     
     if not url:
-        return jsonify({'error': 'দয়া করে একটি সঠিক ভিডিও লিংক দিন!'}), 400
+        return jsonify({'error': 'দয়া করে একটি সঠিক ভিডিও লিংক দিন!'}), 400
 
     ydl_opts = {
-        **YTDL_BASE_OPTS,
+        **get_ytdl_base_opts(),
         'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
         'outtmpl': os.path.join(DOWNLOAD_FOLDER, '%(id)s.%(ext)s'),
     }
@@ -49,10 +61,9 @@ def download_video():
 
             final_filepath = os.path.join(DOWNLOAD_FOLDER, f"{video_id}.mp4")
             
-            # এক্সটেনশন ভিন্ন হলে খুঁজে নেওয়া
             if not os.path.exists(final_filepath):
                 for f in os.listdir(DOWNLOAD_FOLDER):
-                    if f.startswith(video_id):
+                    if f.startswith(video_id) and not f.endswith('.temp'):
                         final_filepath = os.path.join(DOWNLOAD_FOLDER, f)
                         download_filename = f"{safe_title}{os.path.splitext(f)[1]}"
                         break
@@ -81,10 +92,10 @@ def download_subtitle():
     url = data.get('url', '').strip()
     
     if not url:
-        return jsonify({'error': 'দয়া করে একটি সঠিক ভিডিও লিংক দিন!'}), 400
+        return jsonify({'error': 'দয়া করে একটি সঠিক ভিডিও লিংক দিন!'}), 400
 
     ydl_opts = {
-        **YTDL_BASE_OPTS,
+        **get_ytdl_base_opts(),
         'skip_download': True,
         'writesubtitles': True,
         'writeautomaticsub': True,
@@ -103,7 +114,7 @@ def download_subtitle():
         sub_files = [f for f in os.listdir(DOWNLOAD_FOLDER) if f.startswith(video_id) and (f.endswith('.srt') or f.endswith('.vtt'))]
         
         if not sub_files:
-            return jsonify({'error': 'এই ভিডিওতে কোনো সাবটাইটেল পাওয়া যায়নি!'}), 404
+            return jsonify({'error': 'এই ভিডিওতে কোনো সাবটাইটেল পাওয়া যায়নি!'}), 404
 
         target_file = sub_files[0]
         ext = os.path.splitext(target_file)[1]
