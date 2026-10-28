@@ -5,27 +5,114 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>১-ক্লিক ভিডিও ও সাবটাইটেল ডাউনলোডার</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-        body { background-color: #0d131f; color: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
-        .container { background: #172133; border-radius: 16px; padding: 35px; width: 100%; max-width: 580px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; }
-        h1 { color: #00c6ff; font-size: 22px; margin-bottom: 8px; }
-        p.subtitle { color: #8fa0bc; font-size: 13px; margin-bottom: 20px; }
-        input[type="text"] { width: 100%; padding: 14px 16px; border-radius: 8px; border: 1px solid #2d3e5a; background: #0d1524; color: #fff; font-size: 14px; margin-bottom: 15px; outline: none; }
-        
-        /* অপশন বাটন স্টাইল */
-        .options-panel { display: flex; gap: 12px; margin-bottom: 15px; }
-        .opt-btn { flex: 1; padding: 14px; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.3s; color: white; }
-        .btn-video { background: linear-gradient(90deg, #00d2ff 0%, #0066ff 100%); }
-        .btn-sub { background: linear-gradient(90deg, #a855f7 0%, #6366f1 100%); }
-        .opt-btn:hover { opacity: 0.9; transform: translateY(-1px); }
-        .opt-btn:disabled { background: #475569; cursor: not-allowed; transform: none; }
-
-        .status-msg { display: none; margin-top: 15px; padding: 12px; border-radius: 8px; font-size: 13px; }
-        .status-msg.info { background: #1e293b; color: #38bdf8; display: block; }
-        .status-msg.error { background: #3b1424; color: #f87171; display: block; }
-        .status-msg.success { background: #143823; color: #4ade80; display: block; }
-        .footer { margin-top: 25px; font-size: 12px; color: #64748b; }
-        .footer span { color: #00c6ff; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background-color: #0d1117;
+            color: #c9d1d9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background-color: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 16px;
+            padding: 35px 25px;
+            max-width: 580px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+        h1 {
+            color: #00d2ff;
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+        p.subtitle {
+            color: #8b949e;
+            font-size: 14px;
+            margin-bottom: 25px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 14px 16px;
+            background-color: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 15px;
+            outline: none;
+            margin-bottom: 20px;
+            transition: border-color 0.2s;
+        }
+        input[type="text"]:focus {
+            border-color: #58a6ff;
+        }
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        button {
+            flex: 1;
+            padding: 13px;
+            font-size: 15px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .btn-video {
+            background: linear-gradient(90deg, #00c6ff 0%, #0072ff 100%);
+            color: white;
+        }
+        .btn-sub {
+            background: linear-gradient(90deg, #9d50bb 0%, #6e48aa 100%);
+            color: white;
+        }
+        .message-box {
+            display: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 20px;
+            word-break: break-word;
+        }
+        .message-box.error {
+            display: block;
+            background-color: rgba(248, 81, 73, 0.15);
+            border: 1px solid rgba(248, 81, 73, 0.4);
+            color: #ff7b72;
+        }
+        .message-box.info {
+            display: block;
+            background-color: rgba(56, 139, 253, 0.15);
+            border: 1px solid rgba(56, 139, 253, 0.4);
+            color: #58a6ff;
+        }
+        .footer {
+            margin-top: 15px;
+            font-size: 13px;
+            color: #58a6ff;
+        }
+        .footer span {
+            color: #8b949e;
+        }
     </style>
 </head>
 <body>
@@ -34,74 +121,86 @@
     <h1>১-ক্লিক ভিডিও ও সাবটাইটেল ডাউনলোডার</h1>
     <p class="subtitle">YouTube, Facebook, Instagram বা যেকোনো লিংক দিন</p>
 
-    <input type="text" id="videoUrl" placeholder="এখানে ভিডিও লিংক পেস্ট করুন...">
+    <input type="text" id="videoUrl" placeholder="ভিডিও লিংক এখানে পেস্ট করুন..." autocomplete="off">
 
-    <div class="options-panel">
-        <button id="btnVideo" class="opt-btn btn-video" onclick="triggerDownload('video')">🎬 ভিডিও ডাউনলোড</button>
-        <button id="btnSub" class="opt-btn btn-sub" onclick="triggerDownload('subtitle')">📝 সাবটাইটেল ডাউনলোড</button>
+    <div class="btn-group">
+        <button id="btnVideo" class="btn-video" onclick="startDownload('/download-video', 'ভিডিও')">🎬 ভিডিও ডাউনলোড</button>
+        <button id="btnSub" class="btn-sub" onclick="startDownload('/download-subtitle', 'সাবটাইটেল')">📝 সাবটাইটেল ডাউনলোড</button>
     </div>
 
-    <div id="statusAlert" class="status-msg"></div>
+    <div id="msgBox" class="message-box"></div>
 
     <div class="footer">
-        Developer: <span>সুমন শেখ</span><br>
-        Contact / WhatsApp: <span>01883878688</span>
+        <span>Developer:</span> সুমন শেখ <br>
+        <span>Contact / WhatsApp:</span> 01883878688
     </div>
 </div>
 
 <script>
-    async function triggerDownload(mode) {
+    async function startDownload(endpoint, typeName) {
         const urlInput = document.getElementById('videoUrl');
-        const alertBox = document.getElementById('statusAlert');
+        const url = urlInput.value.trim();
+        const msgBox = document.getElementById('msgBox');
         const btnVideo = document.getElementById('btnVideo');
         const btnSub = document.getElementById('btnSub');
-        const url = urlInput.value.trim();
 
         if (!url) {
-            alertBox.className = "status-msg error";
-            alertBox.innerText = "দয়া করে একটি ভিডিও লিংক পেস্ট করুন!";
+            msgBox.className = 'message-box error';
+            msgBox.innerText = 'দয়া করে একটি ভিডিওর লিংক দিন!';
             return;
         }
 
         btnVideo.disabled = true;
         btnSub.disabled = true;
-        alertBox.className = "status-msg info";
-        alertBox.innerText = mode === 'video' ? "ভিডিও প্রসেস করা হচ্ছে, অপেক্ষা করুন..." : "সাবটাইটেল খোঁজা হচ্ছে...";
+        msgBox.className = 'message-box info';
+        msgBox.innerText = `${typeName} প্রসেস করা হচ্ছে, অনুগ্রহ করে অপেক্ষা করুন...`;
 
         try {
-            const response = await fetch('/download', {
+            const response = await fetch(endpoint, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url: url, mode: mode })
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ url: url })
             });
 
+            const contentType = response.headers.get("content-type") || "";
+
             if (!response.ok) {
-                const errData = await response.json();
-                throw new Error(errData.message || "ডাউনলোড ব্যর্থ হয়েছে!");
+                if (contentType.includes("application/json")) {
+                    const errData = await response.json();
+                    throw new Error(errData.error || 'ডাউনলোড ব্যর্থ হয়েছে!');
+                } else {
+                    const textErr = await response.text();
+                    throw new Error('সার্ভারে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।');
+                }
             }
 
-            // ফাইল ব্রাউজারে ডাউনলোড হিসেবে সেভ করা
+            // ফাইল ডাউনলোড প্রক্রিয়া শুরু
             const blob = await response.blob();
+            let filename = `${typeName}_download`;
+            const disposition = response.headers.get('Content-Disposition');
+            if (disposition && disposition.indexOf('filename=') !== -1) {
+                const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+                if (matches != null && matches[1]) { 
+                    filename = matches[1].replace(/['"]/g, '');
+                }
+            }
+
             const downloadUrl = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = downloadUrl;
-            
-            const header = response.headers.get('Content-Disposition');
-            let filename = mode === 'video' ? "video.mp4" : "subtitle.srt";
-            if (header && header.includes('filename=')) {
-                filename = header.split('filename=')[1].replace(/["']/g, '');
-            }
-            a.download = filename;
+            a.download = decodeURIComponent(filename);
             document.body.appendChild(a);
             a.click();
             a.remove();
             window.URL.revokeObjectURL(downloadUrl);
 
-            alertBox.className = "status-msg success";
-            alertBox.innerText = "ডাউনলোড সফল হয়েছে!";
-        } catch (err) {
-            alertBox.className = "status-msg error";
-            alertBox.innerText = err.message;
+            msgBox.className = 'message-box info';
+            msgBox.innerText = `সফলভাবে ${typeName} ডাউনলোড সম্পন্ন হয়েছে!`;
+        } catch (error) {
+            msgBox.className = 'message-box error';
+            msgBox.innerText = error.message;
         } finally {
             btnVideo.disabled = false;
             btnSub.disabled = false;
